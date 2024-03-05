@@ -1,5 +1,4 @@
 import time
-
 import requests
 from web3 import Web3
 from pyuseragents import random as random_useragent
@@ -41,16 +40,16 @@ class Nitro:
         response = requests.get(url, headers=self.headers)
 
         while True:
-            if response.json()['source']['stableReserveAmount']:
+            if 'source' in response.json() and response.json()['source']['stableReserveAmount']:
                 return response.json()
-            elif response.json()['error'] == 'Insufficient liquidity for the desired asset. Kindly try again later.':
+            elif 'error' in response.json() and response.json()['error'] == 'Insufficient liquidity for the desired asset. Kindly try again later.':
                 logger.error('Закончилась ликвидность, повторяю запрос через 10 сек.')
                 time.sleep(10)
-                self.quote_swap_data
+                return self.quote_swap_data()
             else:
                 logger.error('Ошибка при quote_swap request ETH в blast, повторю запрос через 10 сек.')
                 time.sleep(10)
-                self.quote_swap_data
+                return self.quote_swap_data()
 
     def build_tx(self, quote: dict):
         url = "https://api-beta.pathfinder.routerprotocol.com/api/v2/transaction"

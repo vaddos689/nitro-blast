@@ -1,9 +1,12 @@
+import time
+
 import web3
 from loguru import logger
 from web3 import Web3
 from typing import Optional
 import requests
 from web3.middleware import geth_poa_middleware
+from web3.exceptions import ContractCustomError
 from web3.exceptions import BlockNotFound
 from models import TokenAmount
 from utils import read_json
@@ -138,8 +141,14 @@ class Client:
         if value:
             tx_params['value'] = value
 
-        tx_params['gas'] = int(self.w3.eth.estimate_gas(tx_params) * increase_gas)
-        # tx_params['gas'] = txn['gasLimit']
+        while True:
+            try:
+                tx_params['gas'] = int(self.w3.eth.estimate_gas(tx_params) * increase_gas)
+                break  # Если успешно, выходим из цикла
+            except ContractCustomError as e:
+                logger.error(
+                    'Ошибка при расчете газа, пробую еще раз')
+                time.sleep(5)  # Добавим небольшую задержку перед следующей попыткой
 
         sign = self.w3.eth.account.sign_transaction(tx_params, self.private_key)
         return self.w3.eth.send_raw_transaction(sign.rawTransaction)
