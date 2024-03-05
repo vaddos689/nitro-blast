@@ -1,3 +1,5 @@
+import time
+
 import requests
 from web3 import Web3
 from pyuseragents import random as random_useragent
@@ -38,10 +40,17 @@ class Nitro:
 
         response = requests.get(url, headers=self.headers)
 
-        if response.json()['source']['stableReserveAmount']:
-            return response.json()
-        else:
-            logger.error('Ошибка при quote_swap request ETH в blast')
+        while True:
+            if response.json()['source']['stableReserveAmount']:
+                return response.json()
+            elif response.json()['error'] == 'Insufficient liquidity for the desired asset. Kindly try again later.':
+                logger.error('Закончилась ликвидность, повторяю запрос через 10 сек.')
+                time.sleep(10)
+                self.quote_swap_data
+            else:
+                logger.error('Ошибка при quote_swap request ETH в blast, повторю запрос через 10 сек.')
+                time.sleep(10)
+                self.quote_swap_data
 
     def build_tx(self, quote: dict):
         url = "https://api-beta.pathfinder.routerprotocol.com/api/v2/transaction"
@@ -50,6 +59,7 @@ class Nitro:
         quote['receiverAddress'] = self.client.address
 
         response = requests.post(url=url, headers=self.headers, json=quote)
+
         if response.json()['txn']['data']:
             return response.json()['txn']
 
@@ -63,7 +73,6 @@ class Nitro:
 
     def bridge(self, txn):
         data = txn['data']
-
-        tx = self.client.send_transaction(to=Nitro.router_address, data=data)
+        tx = self.client.send_transaction_nitro(txn=txn, to=Nitro.router_address, data=data)
         res = self.client.verif_tx(tx_hash=tx)
         return res

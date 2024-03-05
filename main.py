@@ -31,6 +31,7 @@ def main(private_key: str):
 
     while float(usdce_balance) >= 1.1:
         time.sleep(5)
+
         quote_swap_data = nitro.quote_swap_data
 
         tx = nitro.build_tx(quote=quote_swap_data)
